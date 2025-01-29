@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>服薬状況管理</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-6 flex flex-col items-center">
+    <div id="root"></div>
+    <script type="text/babel">
+        function MedicationTracker() {
+            const [currentDate, setCurrentDate] = React.useState(new Date());
+            const [selectedDate, setSelectedDate] = React.useState(null);
+            const [medicationData, setMedicationData] = React.useState(() => {
+                return JSON.parse(localStorage.getItem("medicationData")) || {};
+            });
+
+            React.useEffect(() => {
+                localStorage.setItem("medicationData", JSON.stringify(medicationData));
+            }, [medicationData]);
+
+            const getMonthDates = (year, month) => {
+                const firstDay = new Date(year, month, 1);
+                const lastDay = new Date(year, month + 1, 0);
+                const dates = [];
+                for (let d = firstDay; d <= lastDay; d.setDate(d.getDate() + 1)) {
+                    dates.push(new Date(d));
+                }
+                return dates;
+            };
+
+            const toggleMedication = (dateKey, timeOfDay) => {
+                setMedicationData(prev => {
+                    const updated = { ...prev, [dateKey]: { ...prev[dateKey], [timeOfDay]: !prev[dateKey]?.[timeOfDay] } };
+                    if (updated[dateKey][timeOfDay]) {
+                        const now = new Date();
+                        updated[dateKey][`${timeOfDay}Time`] = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 ${now.toLocaleTimeString()}`;
+                    } else {
+                        delete updated[dateKey][`${timeOfDay}Time`];
+                    }
+                    return updated;
+                });
+            };
+
+            return (
+                <div className="p-6 flex flex-col items-center">
+                    <h1 className="text-2xl font-bold mb-4">服薬状況管理</h1>
+                    <div className="flex gap-4 mb-4">
+                        <button onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))}
+                            className="px-4 py-2 bg-blue-500 text-white rounded">前の月</button>
+                        <span className="text-xl">{currentDate.getFullYear()}年{currentDate.getMonth() + 1}月</span>
+                        <button onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + 1)))}
+                            className="px-4 py-2 bg-blue-500 text-white rounded">次の月</button>
+                    </div>
+                    <div className="grid grid-cols-7 gap-2">
+                        {getMonthDates(currentDate.getFullYear(), currentDate.getMonth()).map(day => {
+                            const dayKey = day.toISOString().split("T")[0];
+                            return (
+                                <div key={dayKey} className="p-2 cursor-pointer border text-center" onClick={() => setSelectedDate(dayKey)}>
+                                    {day.getDate()}<br />
+                                    <span className={medicationData[dayKey]?.morning ? "text-blue-500 font-bold" : "text-gray-500"}>朝</span>
+                                    <span className={medicationData[dayKey]?.afternoon ? "text-blue-500 font-bold" : "text-gray-500"}> 昼</span>
+                                    <span className={medicationData[dayKey]?.evening ? "text-blue-500 font-bold" : "text-gray-500"}> 晩</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    {selectedDate && (
+                        <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-gray-800 bg-opacity-50"
+                            onClick={() => setSelectedDate(null)}>
+                            <div className="bg-white p-6 rounded shadow-lg" onClick={(e) => e.stopPropagation()}>
+                                <h2 className="text-xl font-bold mb-4">{selectedDate}</h2>
+                                {['morning', 'afternoon', 'evening'].map(timeOfDay => (
+                                    <div key={timeOfDay} className="flex justify-between items-center mb-2">
+                                        <span>{timeOfDay === 'morning' ? '朝' : timeOfDay === 'afternoon' ? '昼' : '晩'}</span>
+                                        <input type="checkbox" checked={medicationData[selectedDate]?.[timeOfDay] || false}
+                                            onChange={() => toggleMedication(selectedDate, timeOfDay)} />
+                                        <span className="text-gray-500 text-sm">{medicationData[selectedDate]?.[`${timeOfDay}Time`] || ''}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById("root")).render(<MedicationTracker />);
+    </script>
+</body>
+</html>
