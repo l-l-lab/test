@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>テニススコア管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-5">
+    <div class="max-w-lg mx-auto bg-white p-5 rounded-lg shadow-lg">
+        <h1 class="text-2xl font-bold text-center mb-5">テニススコア管理</h1>
+        
+        <!-- スコア表示テーブル -->
+        <div class="mb-4">
+            <table class="w-full border-collapse border border-gray-400">
+                <thead>
+                    <tr class="bg-gray-300">
+                        <th class="border border-gray-400 p-2">Name</th>
+                        <th class="border border-gray-400 p-2">Set</th>
+                        <th class="border border-gray-400 p-2">Game</th>
+                        <th class="border border-gray-400 p-2">Point</th>
+                        <th class="border border-gray-400 p-2">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="border border-gray-400 p-2 cursor-pointer" onclick="editName('A')" id="playerA">PlayerA</td>
+                        <td class="border border-gray-400 p-2" id="setA">0</td>
+                        <td class="border border-gray-400 p-2" id="gameA">0</td>
+                        <td class="border border-gray-400 p-2" id="scoreA">0</td>
+                        <td class="border border-gray-400 p-2">
+                            <button onclick="increaseScore('A')" class="bg-blue-500 text-white px-4 py-1 rounded">ポイント</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="border border-gray-400 p-2 cursor-pointer" onclick="editName('B')" id="playerB">PlayerB</td>
+                        <td class="border border-gray-400 p-2" id="setB">0</td>
+                        <td class="border border-gray-400 p-2" id="gameB">0</td>
+                        <td class="border border-gray-400 p-2" id="scoreB">0</td>
+                        <td class="border border-gray-400 p-2">
+                            <button onclick="increaseScore('B')" class="bg-red-500 text-white px-4 py-1 rounded">ポイント</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- 履歴表示 -->
+        <div class="mt-4">
+            <button onclick="cancelLastEntry()" class="bg-gray-500 text-white px-4 py-2 rounded mb-2">直近のポイントを削除</button>
+            
+            <h3 class="text-lg font-bold">履歴</h3>
+            <ul id="history" class="bg-gray-200 p-2 rounded overflow-auto max-h-40"></ul>
+            
+        </div>
+    </div>
+
+    <script>
+        let sets = { A: 0, B: 0 };
+        let games = { A: 0, B: 0 };
+        let points = { A: 0, B: 0 };
+        let history = [];
+        const pointSequence = [0, 15, 30, 40, "Adv", "Win"];
+
+        function increaseScore(player) {
+            if (points[player] === "Win") return;
+            
+            let opponent = player === "A" ? "B" : "A";
+            let prevPoints = `${pointSequence[points.A]} - ${pointSequence[points.B]}`;
+
+            if (points[player] >= 3 && points[opponent] >= 3) {
+                if (points[player] === points[opponent]) {
+                    points[player]++;
+                } else if (points[player] > points[opponent]) {
+                    games[player]++;
+                    points.A = points.B = 0;
+                } else {
+                    points[player]++;
+                    if (points[player] === points[opponent]) {
+                        points.A = points.B = 3; // Deuceに戻る
+                    } else {
+                        points[opponent]--;
+                    }
+                }
+            } else {
+                points[player]++;
+                if (points[player] >= 4) {
+                    games[player]++;
+                    points.A = points.B = 0;
+                }
+            }
+
+            if (games[player] >= 6 && games[player] - games[opponent] >= 2) {
+                sets[player]++;
+                games.A = games.B = 0;
+            }
+            
+            let newPoints = `${pointSequence[points.A]} - ${pointSequence[points.B]}`;
+            history.unshift(`${document.getElementById(`player${player}`).innerText} : Set: ${sets.A} - ${sets.B}, Game: ${games.A} - ${games.B}, Point: ${pointSequence[points.A]} - ${pointSequence[points.B]}`);
+            updateScore();
+            updateHistory();
+        }
+
+        function updateScore() {
+            document.getElementById("scoreA").innerText = pointSequence[points.A] || 0;
+            document.getElementById("scoreB").innerText = pointSequence[points.B] || 0;
+            document.getElementById("gameA").innerText = games.A;
+            document.getElementById("gameB").innerText = games.B;
+            document.getElementById("setA").innerText = sets.A;
+            document.getElementById("setB").innerText = sets.B;
+        }
+
+        function updateHistory() {
+            let historyList = document.getElementById("history");
+            historyList.innerHTML = "";
+            history.forEach((entry) => {
+                let listItem = document.createElement("li");
+                listItem.className = "p-1 bg-white mb-1 rounded";
+                listItem.innerText = entry;
+                historyList.appendChild(listItem);
+            });
+        }
+
+        function cancelLastEntry() {
+            if (history.length > 0) {
+                history.shift();
+                updateHistory();
+            }
+        }
+    </script>
+</body>
+</html>
